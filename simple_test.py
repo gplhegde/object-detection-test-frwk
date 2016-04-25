@@ -2,7 +2,7 @@ import sys, os
 import cv2
 
 
-classifier_model = '/opt/opencv/opencv-3.1.0/opencv/data/lbpcascades/lbpcascade_frontalface.xml'
+classifier_model = '/opt/opencv/data/lbpcascades/lbpcascade_frontalface.xml'
 
 if __name__=='__main__':
     image_path  = sys.argv[1]

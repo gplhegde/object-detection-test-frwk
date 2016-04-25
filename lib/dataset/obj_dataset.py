@@ -7,7 +7,7 @@ class ObjectDataset(object):
         self._dset_name = dset_name
         self._img_names = []
         self._annotations = None
-        self._populate_anotations = self.not_implemeted_handler
+        self._populate_anotations = self.not_implemented_handler
 
     @property
     def dset_name(self):
@@ -25,7 +25,7 @@ class ObjectDataset(object):
     def annotations(self):
         """Object annotations in each image of the dataset.
         The annotations are a list of dictionaries of the following form.
-        {'rects' : [[x, y, w, h],... [....]]}
+        {'rects' : [[xmin, ymin, xmax, ymax],... [....]]}
         """
         if self._annotations == None:
             self._annotations = self._populate_anotations()

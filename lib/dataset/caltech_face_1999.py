@@ -1,10 +1,14 @@
 import os
+import obj_dataset
 from datasets import get_dataset
+import scipy.io as scio
+import cv2
+import numpy as np
 
-class CaltechFace(ObjectDataset)
+class CaltechFace(obj_dataset.ObjectDataset):
     def __init__(self, dataset_name):
         
-        ObjectDataset.__init__(dataset_name)
+        obj_dataset.ObjectDataset.__init__(self, dataset_name)
         # get the path to the current dataset. The dataset directory must contain following directories
         # <dataset_path>
         #     - annotations    : contains annotation file/files. The format and file type is left to the dataset.
@@ -35,5 +39,58 @@ class CaltechFace(ObjectDataset)
         return img_names
 
     def load_annotations(self):
+        """ Load annotations from .mat file and form a list dictionaries.
+        [x_bot_left y_bot_left x_top_left y_top_left ... 
+            x_top_right y_top_right x_bot_right y_bot_right]
+        """
+        # load annotations mat file
+        annotation_file = os.path.join(self.dataset_path, 'annotations', 'annotations.mat')
+        # the mat file contains a variable named SubDir_Data which holds the co-ordinates of the box
+        # 1 column is for 1 image. The column number and image name suffix are in sync. 
+        raw_ann = scio.loadmat(annotation_file)['SubDir_Data']
 
+        # we need only top left and bottom right corner co-ordinates
+        valid_rows = (2, 3, 6, 7)
+        annotations = []
+        for im in self.img_names:
+            img_no = int(im.split('_')[-1])
+            # image number starts from 1. Hence subtract 1 to match with row 0
+            # in matlab, array co-ordinates start from 1 hence subtract 1
+            box = raw_ann[valid_rows, img_no-1] - 1
+            # co-ordinates are in a column vector. reshape them into a row
+            box = box.reshape(1, -1)
+            # add the box to the annotation list as a new dictionary
+            annotations.append({'rects': box})
+
+        return annotations        
+
+    def get_image_path(self, img_name):
+        name = ''
+        for ext in self._img_format:
+            # see if the image exists in any of the image format listed in _img_format
+            name =  os.path.join(self.dataset_path, 'images', img_name+'.'+ext)
+            if(os.path.exists(name)):
+                break
+        assert(name != ''), 'Cannot locate the image path'
+        return name
         
+    def visualize_annoatations(self):
+        """Draw rectange as per the annotations and show the image. Just for cross checking
+        """
+        ann = self.annotations
+        for i, im in enumerate(self.img_names):
+            img_path = self.get_image_path(im)
+            img = cv2.imread(img_path)
+            box = ann[i]['rects'][0].astype(np.int32)
+            cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
+            cv2.imshow('with_box', img)
+            print('Press any key to move to next image...')
+            cv2.waitKey()
+
+if __name__=='__main__':
+    data = CaltechFace('caltech-face-1999')
+    print ('No of images in this dataset = {:d}'.format(data.no_images))
+
+    a = data.annotations
+    data.visualize_annoatations()
+
