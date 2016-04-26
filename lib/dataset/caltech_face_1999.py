@@ -22,6 +22,8 @@ class CaltechFace(obj_dataset.ObjectDataset):
         self._img_names = self.load_image_names()
         # annotations for all objects in all images are loaded into list of dictionaries.
         self._populate_anotations = self.load_annotations
+        # method to form and return absolute path of all images in the dataset
+        self._get_image_paths = self.get_image_paths
 
     def get_dataset_path(self, dset_name):
         return get_dataset(dset_name)
@@ -62,7 +64,16 @@ class CaltechFace(obj_dataset.ObjectDataset):
             # add the box to the annotation list as a new dictionary
             annotations.append({'rects': box})
 
-        return annotations        
+        return annotations
+
+    def get_image_paths(self):
+        """makes list of absolute image paths of all images in the dataset
+        """
+        img_paths = []
+        for im in self.img_names:
+            img_paths.append(self.get_image_path(im))
+
+        return img_paths
 
     def get_image_path(self, img_name):
         name = ''
@@ -92,5 +103,7 @@ if __name__=='__main__':
     print ('No of images in this dataset = {:d}'.format(data.no_images))
 
     a = data.annotations
-    data.visualize_annoatations()
+    #data.visualize_annoatations()
+    paths = data.image_paths
+    print (paths)
 

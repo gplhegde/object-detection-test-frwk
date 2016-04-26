@@ -2,7 +2,7 @@ import os, sys
 import cv2
 from eval_config import eval_cfg
 
-class ObjectDetector(object):
+class ObjectEvaluator(object):
     """Object evaluator classi. This has methods to evaluate images in a dataset and given 
     dataset images and ground thruth annotations.
     This produces accuracy figures using specified evaluation criteria.
@@ -25,7 +25,7 @@ class ObjectDetector(object):
         else:
             raise ValueError('Unsupported detector type')
 
-    def detect_objects(self, image):  
+    def __detect_objects(self, image):  
         """Given a BGR/GRAY image, this method returns detected boxes
         Output:
         A list of rectangles in the following format
@@ -47,22 +47,25 @@ class ObjectDetector(object):
         )
         return objs
 
+    def visualize_detections(self, img_paths):
+        """Iterates thru all images in the given image path list and detects objects/faces
+        using initialized detector and draws boxes around detected objects.
+        """
+        for im in img_paths:
+            img = cv2.imread(im)
+            objs = self.__detect_objects(img)
+            for (x, y, w, h) in objs:
+                cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 3)
 
+            cv2.imshow('detections', img)
+            print('Press any key to move to next image...')
+            cv2.waitKey()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def __evaluate_iou_accuracy(self, detections, annotations):
+        """Given the detections and corresponding annotations for a dataset, this method
+        does intersectio over union evaluations to determine the detection accuracy using
+        configured IoU threshold
+        """
 
 
 
@@ -71,6 +74,6 @@ class ObjectDetector(object):
 
 if __name__=='__main__':
     img_file = sys.argv[1]
-    det = ObjectDetector('lbp_face', 'cascade')
-    objs = det.detect_objects(cv2.imread(img_file))
+    det = ObjectEvaluator('lbp_face', 'cascade')
+    objs = det.__detect_objects(cv2.imread(img_file))
     print objs

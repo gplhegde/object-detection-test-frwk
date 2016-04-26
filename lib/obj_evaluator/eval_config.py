@@ -30,7 +30,7 @@ __EVAL_CONFIG.METRICS = __EVAL_METRICS
 __EVAL_CONFIG.SCALE_FACTOR = 1.1
 
 # min neighbors for a detection to be considered as true detection
-__EVAL_CONFIG.MIN_NEIGHBORS = 4
+__EVAL_CONFIG.MIN_NEIGHBORS = 5
 
 # min size of(w, h) the detected object. object smaller than  this are neglected.
 __EVAL_CONFIG.MIN_OBJ_SIZE = (30, 30)

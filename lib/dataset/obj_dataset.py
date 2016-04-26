@@ -8,6 +8,7 @@ class ObjectDataset(object):
         self._img_names = []
         self._annotations = None
         self._populate_anotations = self.not_implemented_handler
+        self._get_image_paths = self.not_implemented_handler
 
     @property
     def dset_name(self):
@@ -30,6 +31,10 @@ class ObjectDataset(object):
         if self._annotations == None:
             self._annotations = self._populate_anotations()
         return self._annotations
+
+    @property
+    def image_paths(self):
+        return self._get_image_paths()
 
     def not_implemented_handler(self):
         NotImplementedError
