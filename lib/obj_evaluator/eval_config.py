@@ -15,7 +15,7 @@ __MODELS['haar_face'] = '/opt/opencv/data/haarcascades/haarcascade_frontalface_d
 __EVAL_METRICS = {}
 
 # intersection over union threshold. Basically % of verlap with the ground truth annotations.
-__EVAL_METRICS['iou_thr'] = 0.5
+__EVAL_METRICS['iou_thr'] = 0.3
 
 # evaluate false +ve rate
 __EVAL_METRICS['fpr'] = True
