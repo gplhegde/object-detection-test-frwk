@@ -3,6 +3,7 @@ __DATASETS = {}
 
 
 __DATASETS['caltech-face-1999'] = {'path': '/opt/obj-detection/face-datasets/caltech-face-1999'}
+__DATASETS['afw'] = {'path': '/opt/obj-detection/face-datasets/AFW'}
 
 
 def get_dataset(name):
