@@ -119,7 +119,12 @@ class ObjectEvaluator(object):
              false_det_list.append(fp_list)
 
         accuracy = float(total_detections) / total_gt_boxes
-        print ('No of false +ves = {:d}'.format(total_false_pos))
+        print('---------IoU Test Summary---------')
+        print('No of images tested = {:d}'.format(len(annotations)))
+        print('No of ground truth objects in the entire test set = {:d}'.format(total_gt_boxes))
+        print('No of correctly detected boxes = {:d}'.format(total_detections))
+        print('No of false +ves = {:d}'.format(total_false_pos))
+        print('Detection accuracy = {:f}'.format(accuracy))
         return (accuracy, match_list, false_det_list)
 
     def __get_all_detections(self, img_paths):
@@ -155,30 +160,32 @@ class ObjectEvaluator(object):
 
         return detections
 
-    def evaluate_model(self, img_paths, annotations):
+    def evaluate_model(self, img_paths, annotations, show_img=False):
         """Object detector model evaluator. Tests the model on a set of images with ground thruth annotations
         and computes detection accuracy, false +ve rate and other metrics
         """
         detections = self.__get_all_detections(img_paths)
         accuracy, match_list, fp_list = self.__evaluate_iou_accuracy(detections, annotations)
-        for i, im in enumerate(img_paths):
-            img = cv2.imread(im)
-            ann = annotations[i]
-            fp = fp_list[i]
-            this_img_match = match_list[i]
-            # draw false +ves if any
-            for f in fp:
-                cv2.rectangle(img, (f[0], f[1]), (f[2], f[3]), (0, 0, 255), 2)
-            # draw annotations and detections
-            for i, a in enumerate(ann['rects']):
-                this_gt_match = this_img_match[i]
-                for m in this_gt_match:
-                    cv2.rectangle(img, (m[0], m[1]), (m[2], m[3]), (255, 0, 0), 2)
-                
-                cv2.rectangle(img, (int(a[0]), int(a[1])), (int(a[2]), int(a[3])), (0, 255, 0), 2)
+        if (show_img == True):
+            for i, im in enumerate(img_paths):
+                img = cv2.imread(im)
+                ann = annotations[i]
+                fp = fp_list[i]
+                this_img_match = match_list[i]
+                # draw false +ves if any
+                for f in fp:
+                    cv2.rectangle(img, (f[0], f[1]), (f[2], f[3]), (0, 0, 255), 2)
+                # draw annotations and detections
+                for i, a in enumerate(ann['rects']):
+                    this_gt_match = this_img_match[i]
+                    for m in this_gt_match:
+                        cv2.rectangle(img, (m[0], m[1]), (m[2], m[3]), (255, 0, 0), 2)
+                    
+                    cv2.rectangle(img, (int(a[0]), int(a[1])), (int(a[2]), int(a[3])), (0, 255, 0), 2)
 
-            cv2.imshow('detections', img)
-            cv2.waitKey()
+                cv2.imshow('detections', img)
+                cv2.waitKey()
+
         print('--------------Performance Statistics------------')
         print('No of images tested = {:d}'.format(len(img_paths)))
         print('No of ground truth objects  =')
@@ -197,4 +204,4 @@ if __name__=='__main__':
     ann = [{'rects': np.array([[ 434.0688738 ,   40.30860215,  783.27815507,  532.09445388]])},
            {'rects': np.array([[ 190.24227504,   60.97187323,  533.25257499,  523.82914544]])}]
 
-    det.evaluate_model(paths, ann)
+    det.evaluate_model(paths, ann, True)
