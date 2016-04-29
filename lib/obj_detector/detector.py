@@ -146,6 +146,40 @@ class ObjectDetector(object):
 
         return np.uint8(lbp_code)
 
+    def _evaluate_window(self, win_x, win_y, ii_img):
+        """Given a window top left corner(x, y), evaluates it for presense of any objects.
+        Input:
+        win_x : column no of top left corner
+        win_y : row no of top left corner
+        ii_img: integral image of the image to which the window belongs
+        Output: True --> contains object, False -> no objects found
+        """
+        no_stages = self.no_stages
+        for stage in range(no_stages):
+            no_stumps = self._no_stage_stumps(stage)
+            stage_thr = self._get_stage_thr(stage)
+            weight = 0
+            for s in range(no_stumps):
+                # get parameters of current stump
+                feat_no = self._feat_no(stage, s)
+                feat_params = self._feat_params(feat_no)    
+                stump_luts = self._stump_luts(stage, s)
+                stump_wts = self._stump_weights(stage, s)
+                # compute LBP feature 
+                lbp_code = self._compute_lbp_feature(ii_img, feat_params, win_x, win_y)
+                # decide whether to add left or right leaf value
+                flag = stump_luts[lbp_code >> 5] & (1 << (lbp_code & 31))
+                if ( flag > 0):
+                    weight += stump_wts[0]
+                else:
+                    weight += stump_wts[1]
+            # if the weight is less than the stage threshold, stage is failed
+            if (weight < stage_thr):
+                return False
+
+         # window is passed if it passes all stages
+         return True
+
     def detect_objects(self, in_img, scale_factor=1.1, min_neighbors=3, min_size=(30,30), max_size=())
         """Detect objects using the LBP cascade classifier present in the given grayscale image.
         This has similar functionality as that of cv2.detectMultiScale() method
