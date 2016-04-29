@@ -16,9 +16,9 @@ paths = dset.image_paths
 print paths[0]
 print paths[1]
 # LBP cascade face detector
-det = ObjectEvaluator('lbp_face', 'cascade')
+det = ObjectEvaluator('custom_lbp_face', 'cascade')
 
 # iterate thru all images in dataset and detect the faces.
-det.visualize_detections(paths)
+#det.visualize_detections(paths)
 
-#det.evaluate_model(paths, a)
+det.evaluate_model(paths, a)
