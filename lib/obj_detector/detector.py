@@ -184,6 +184,8 @@ class ObjectDetector(object):
         """Detect objects using the LBP cascade classifier present in the given grayscale image.
         This has similar functionality as that of cv2.detectMultiScale() method
         """
+        v_stride = 1
+        h_stride = 1
         objs = []
         # convert to gray scale if the image is color 
         if(len(gray_img.shape) == 3):
@@ -191,7 +193,46 @@ class ObjectDetector(object):
         else:
             gray_img = in_img
 
-        
+        org_height = gray_img.shape[0]
+        org_width = gray_img.shape[1]
+        cur_width = org_width
+        cur_height = org_height
+        win_width = self.win_width
+        win_height = self.win_height
+
+        # initial scale 1 as we process  original image
+        scale = 1.0
+        # downscale image and detect objects until one of the image dimension
+        # becomes less  than the window size
+        while(cur_width > (win_width+1) and cur_height > (win_height+1)):
+            # max possible window top left corner positions.
+            x_max = cur_width - win_width + 1
+            y_max = cur_height - win_height + 1
+            # compute integral image
+            ii_img = cv2.integral(gray_img)
+
+            for row in range(0, y_max, v_stride):
+                for col in range(0, x_max, h_stride):
+                    # detect if the current window contains any objects
+                    win_pass = self._evaluate_window(col, row, ii_img)
+                    # record the window if it passes
+                    if(win_pass):
+                        objs.append([int(col*scale),
+                                     int(row*scale),
+                                     int(scale*win_width),
+                                     int(scale*win_width)])
+ 
+            # down scale the image
+            cur_width = int(cur_width/scale_factor)
+            cur_height = int(cur_height/scale_factor)
+            scale *= scale_factor
+            gray_img = cv2.resize(gray_img, dsize=(cur_width, cur_height), interpolation=cv2.INTER_LINEAR)
+            # perform new detections on the rescaled image.
+
+        # perform NMS 
+
+        return objs
+
 if __name__=='__main__':
     this_dir = os.path.dirname(__file__)
     model_file = os.path.join(this_dir, '../../models/lbp_fp_face_model.xml')
