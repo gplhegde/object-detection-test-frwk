@@ -1,3 +1,11 @@
+#-------------------------------------------------------------------
+#  Author: Gopalakrishna Hegde, NTU Singapore  
+#  Date:  30 April 2016
+#
+#  Licensed under The MIT License [see LICENSE for details]
+#
+#
+#-------------------------------------------------------------------
 import os
 import obj_dataset
 from datasets import get_dataset

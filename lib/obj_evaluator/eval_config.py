@@ -1,3 +1,11 @@
+#-------------------------------------------------------------------
+#  Author: Gopalakrishna Hegde, NTU Singapore  
+#  Date:  30 April 2016
+#
+#  Licensed under The MIT License [see LICENSE for details]
+#
+#
+#-------------------------------------------------------------------
 from easydict import EasyDict as edict
 import sys, os
 

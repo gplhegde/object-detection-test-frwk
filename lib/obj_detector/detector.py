@@ -1,3 +1,11 @@
+#-------------------------------------------------------------------
+#  Author: Gopalakrishna Hegde, NTU Singapore  
+#  Date:  30 April 2016
+#
+#  Licensed under The MIT License [see LICENSE for details]
+#
+#
+#-------------------------------------------------------------------
 """Cascade object detector using LBP cascade algorithm. Even though OpenCV has object detector,
 this module will implement a custom controlled detector so that many parameters can be changed.
 This implementation is not performance optimal in any sense
