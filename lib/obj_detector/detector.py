@@ -10,7 +10,7 @@
 this module will implement a custom controlled detector so that many parameters can be changed.
 This implementation is not performance optimal in any sense
 """
-import os
+import os,sys
 import xml.dom.minidom as minidom
 import cv2
 import numpy as np
@@ -31,18 +31,36 @@ class ObjectDetector(object):
         # model type. either float or fixed
         self.model_type = model_type
 
-    @property
-    def no_stages(self):
-        return int(self.model_root.getElementsByTagName('stageNum')[0].childNodes[0].data)
+        # decode the model file and create data structures
+        self.no_stages = int(self.model_root.getElementsByTagName('stageNum')[0].childNodes[0].data)
+        self.win_height = int(self.model_root.getElementsByTagName('height')[0].childNodes[0].data)
+        self.win_width = int(self.model_root.getElementsByTagName('width')[0].childNodes[0].data)
 
-    @property
-    def win_height(self):
-        return int(self.model_root.getElementsByTagName('height')[0].childNodes[0].data)
-        
-    @property
-    def win_width(self):
-        return int(self.model_root.getElementsByTagName('width')[0].childNodes[0].data)
-
+        self.stage_thr = tuple([self._get_stage_thr(s) for s in range(self.no_stages)])
+        self.stage_stumps = tuple([self._no_stage_stumps(s) for s in range(self.no_stages)])
+        # get all feature index for all stages and form a list of tuple.
+        # each tuple contains feature indices for one stage
+        self.feat_idx = []
+        for stg in range(self.no_stages):
+            stage_feat_idx = [self._feat_no(stg, s) for s in range(self.stage_stumps[stg])]
+            self.feat_idx.append(tuple(stage_feat_idx))
+        # get all rectangle features and form  a list of rects (tuple)
+        self.feat_params = []
+        rect_nodes = self.features.getElementsByTagName('rect')
+        for rect in rect_nodes:
+            rect_data = rect.childNodes[0].data.strip()
+            params = [int(e) for e in rect_data.split()]
+            self.feat_params.append(tuple(params))
+        # collect LUTs and weights of all stumps and store them in list of list of tuples
+        # each tuple is for one stump and a list over all stumps in that stage
+        self.luts = []
+        self.weights = []
+        for stg in range(self.no_stages):
+            stage_luts = [self._stump_luts(stg, s)  for s in range(self.stage_stumps[stg])]
+            stage_wts = [self._stump_weights(stg, s)  for s in range(self.stage_stumps[stg])]
+            self.luts.append(stage_luts)
+            self.weights.append(stage_wts)
+                 
     def _get_stage_thr(self, stage_no):
         """Returns stage threshold of the given cascade stage.
         """
@@ -107,7 +125,7 @@ class ObjectDetector(object):
         integral image.
         Output: lab code (np.uint8)
         """
-        def _get_cell_sum(ii_img, x, y, w, h)
+        def _get_cell_sum(ii_img, x, y, w, h):
             left_pt = x-1
             top_pt = y-1
             # a --> top left corner of ii image 
@@ -130,7 +148,7 @@ class ObjectDetector(object):
             # cell sum
             return (a+c) - (b+d)
 
-        # move the co-ordinated from window's top left corner to feature block's top left corner
+        # move the co-ordinate from window's top left corner to feature block's top left corner
         feat_x = win_pos_x + feat_param[0]
         feat_y = win_pos_y + feat_param[1]
         cell_width = feat_param[2]
@@ -164,15 +182,15 @@ class ObjectDetector(object):
         """
         no_stages = self.no_stages
         for stage in range(no_stages):
-            no_stumps = self._no_stage_stumps(stage)
-            stage_thr = self._get_stage_thr(stage)
+            no_stumps = self.stage_stumps[stage]
+            stage_thr =  self.stage_thr[stage]
             weight = 0
             for s in range(no_stumps):
                 # get parameters of current stump
-                feat_no = self._feat_no(stage, s)
-                feat_params = self._feat_params(feat_no)    
-                stump_luts = self._stump_luts(stage, s)
-                stump_wts = self._stump_weights(stage, s)
+                feat_no = self.feat_idx[stage][s]
+                feat_params = self.feat_params[feat_no]
+                stump_luts = self.luts[stage][s]
+                stump_wts = self.weights[stage][s]
                 # compute LBP feature 
                 lbp_code = self._compute_lbp_feature(ii_img, feat_params, win_x, win_y)
                 # decide whether to add left or right leaf value
@@ -185,10 +203,10 @@ class ObjectDetector(object):
             if (weight < stage_thr):
                 return False
 
-         # window is passed if it passes all stages
-         return True
+        # window is passed if it passes all stages
+        return True
 
-    def detect_objects(self, in_img, scale_factor=1.1, min_neighbors=3, min_size=(30,30), max_size=())
+    def detect_objects(self, in_img, scale_factor=2.0, min_neighbors=3, min_size=(30,30), max_size=()):
         """Detect objects using the LBP cascade classifier present in the given grayscale image.
         This has similar functionality as that of cv2.detectMultiScale() method
         """
@@ -196,7 +214,7 @@ class ObjectDetector(object):
         h_stride = 1
         objs = []
         # convert to gray scale if the image is color 
-        if(len(gray_img.shape) == 3):
+        if(len(in_img.shape) == 3):
             gray_img = cv2.cvtColor(in_img, cv2.COLOR_BGR2GRAY)
         else:
             gray_img = in_img
@@ -218,17 +236,17 @@ class ObjectDetector(object):
             y_max = cur_height - win_height + 1
             # compute integral image
             ii_img = cv2.integral(gray_img)
-
+            print ('current scale = {:f}'.format(scale))
             for row in range(0, y_max, v_stride):
                 for col in range(0, x_max, h_stride):
                     # detect if the current window contains any objects
                     win_pass = self._evaluate_window(col, row, ii_img)
                     # record the window if it passes
                     if(win_pass):
-                        objs.append([int(col*scale),
+                        objs.append(tuple([int(col*scale),
                                      int(row*scale),
                                      int(scale*win_width),
-                                     int(scale*win_width)])
+                                     int(scale*win_height)]))
  
             # down scale the image
             cur_width = int(cur_width/scale_factor)
@@ -238,7 +256,7 @@ class ObjectDetector(object):
             # perform new detections on the rescaled image.
 
         # perform NMS 
-
+        print len(objs)
         return objs
 
 if __name__=='__main__':
@@ -260,3 +278,12 @@ if __name__=='__main__':
     print(det._stump_luts(6,2))
 
     print(det._feat_params(3))
+    print('Looking for objects....')
+    clr_img = cv2.imread(sys.argv[1])
+    objs = det.detect_objects(clr_img)
+    for (x, y, w, h) in objs:
+        cv2.rectangle(clr_img, (x, y), (x+w, y+h), (255, 0, 0), 3)
+
+    cv2.imshow('detections', clr_img)
+    print('Press any key to move to next image...')
+    cv2.waitKey()
