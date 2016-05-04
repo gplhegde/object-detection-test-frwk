@@ -206,7 +206,76 @@ class ObjectDetector(object):
         # window is passed if it passes all stages
         return True
 
-    def detect_objects(self, in_img, scale_factor=2.0, min_neighbors=3, min_size=(30,30), max_size=()):
+    def block_integral_object_detector(self, in_img, scale_factor=1.1, blk_height=60, blk_width=80, min_neighbors=3, min_size=(30,30)):
+        """This uses block integral image instead of full integral image. 
+        """
+        v_stride = 1
+        h_stride = 1
+        objs = []
+        # convert to gray scale if the image is color 
+        if(len(in_img.shape) == 3):
+            gray_img = cv2.cvtColor(in_img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray_img = in_img
+
+        org_height = gray_img.shape[0]
+        org_width = gray_img.shape[1]
+        cur_width = org_width
+        cur_height = org_height
+        win_width = self.win_width
+        win_height = self.win_height
+        blk_horz_stride = blk_width - win_width
+        blk_vert_stride = blk_height - win_height
+
+        # initial scale 1 as we process  original image
+        scale = 1.0
+        # downscale image and detect objects until one of the image dimension
+        # becomes less  than the window size
+        while(cur_width > (win_width+1) and cur_height > (win_height+1)):
+            # max possible window top left corner positions.
+            x_max = cur_width - win_width + 1
+            y_max = cur_height - win_height + 1
+            # extract a sliding image block and compute integral image on that.
+            # detect the objects in the current block
+            print('Current scale = {:f}'.format(scale))
+            blk_y = 0
+            while blk_y < y_max:
+                blk_x = 0
+                while blk_x < x_max:
+                    print ('Block position (y,x) = ({:d},{:d})'.format(blk_y, blk_x))
+                    # we cannot have full block in the edge of the image
+                    max_blk_width = min(blk_width, cur_width - blk_x)
+                    max_blk_height = min(blk_height, cur_height - blk_y)
+                    # extract a block and
+                    img_blk = gray_img[blk_y:blk_y+max_blk_height, blk_x:blk_x+max_blk_width]
+                    ii_img = cv2.integral(img_blk)
+                    # now use sliding window detector to find objects in the current block
+                    for row in range(0, max_blk_height-win_height+1, v_stride):
+                        for col in range(0, max_blk_width-win_width+1, h_stride):
+                            # detect if the current window contains any objects
+                            win_pass = self._evaluate_window(col, row, ii_img)
+                            # record the window if it passes
+                            if(win_pass):
+                                objs.append(tuple([int((col+blk_x)*scale),
+                                     int((row+blk_y)*scale),
+                                     int(scale*win_width),
+                                     int(scale*win_height)]))
+                    # slide the block horizontally
+                    blk_x += blk_horz_stride
+                # slide the block vertically        
+                blk_y += blk_vert_stride
+            # down scale the image
+            cur_width = int(cur_width/scale_factor)
+            cur_height = int(cur_height/scale_factor)
+            scale *= scale_factor
+            gray_img = cv2.resize(gray_img, dsize=(cur_width, cur_height), interpolation=cv2.INTER_LINEAR)
+            # perform new detections on the rescaled image.
+
+        # perform NMS 
+        print len(objs)
+        return objs
+
+    def detect_objects(self, in_img, scale_factor=1.1, min_neighbors=3, min_size=(30,30), max_size=()):
         """Detect objects using the LBP cascade classifier present in the given grayscale image.
         This has similar functionality as that of cv2.detectMultiScale() method
         """
@@ -280,7 +349,14 @@ if __name__=='__main__':
     print(det._feat_params(3))
     print('Looking for objects....')
     clr_img = cv2.imread(sys.argv[1])
-    objs = det.detect_objects(clr_img)
+    #objs = det.detect_objects(in_img=clr_img,
+    #    scale_factor=2.0)
+
+    objs = det.block_integral_object_detector(in_img=clr_img,
+        scale_factor=2.0,
+        blk_height=120,
+        blk_width=160)
+
     for (x, y, w, h) in objs:
         cv2.rectangle(clr_img, (x, y), (x+w, y+h), (255, 0, 0), 3)
 
