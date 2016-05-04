@@ -206,6 +206,97 @@ class ObjectDetector(object):
         # window is passed if it passes all stages
         return True
 
+    def _evaluate_window_scaled(self, win_x, win_y, scale, ii_img):
+        """Given a window top left corner(x, y), evaluates it for presense of any objects at specified detector window scale.
+        Input:
+        win_x : column no of top left corner
+        win_y : row no of top left corner
+        scale: detector window scale. The feature co-ordinates are scaled by this factor.
+        ii_img: integral image of the image to which the window belongs
+        Output: True --> contains object, False -> no objects found
+        """
+        no_stages = self.no_stages
+        for stage in range(no_stages):
+            no_stumps = self.stage_stumps[stage]
+            stage_thr =  self.stage_thr[stage]
+            weight = 0
+            for s in range(no_stumps):
+                # get parameters of current stump
+                feat_no = self.feat_idx[stage][s]
+                feat_params = self.feat_params[feat_no]
+                scaled_feat_params = tuple([int(p*scale) for p in feat_params])
+                stump_luts = self.luts[stage][s]
+                stump_wts = self.weights[stage][s]
+                # compute LBP feature 
+                lbp_code = self._compute_lbp_feature(ii_img, scaled_feat_params, win_x, win_y)
+                # decide whether to add left or right leaf value
+                flag = stump_luts[lbp_code >> 5] & (1 << (lbp_code & 31))
+                if ( flag > 0):
+                    weight += stump_wts[0]
+                else:
+                    weight += stump_wts[1]
+            # if the weight is less than the stage threshold, stage is failed
+            if (weight < stage_thr):
+                return False
+
+        # window is passed if it passes all stages
+        return True
+
+    def scaled_window_object_detector(self, in_img, scale_factor=1.1, min_neighbors=3, min_size=(30,30)):
+        """This object detector is based on scaled detector window. It scales the detector window instead of
+        scaling image. Dectector window pyramid is constructed instead of image pyramid
+        """
+        v_stride = 1
+        h_stride = 1
+        objs = []
+        # convert to gray scale if the image is color 
+        if(len(in_img.shape) == 3):
+            gray_img = cv2.cvtColor(in_img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray_img = in_img
+
+        img_height = gray_img.shape[0]
+        img_width = gray_img.shape[1]
+        cur_win_width = self.win_width 
+        cur_win_height = self.win_height
+
+        # compute integral image. just one time process
+        ii_img = cv2.integral(gray_img)
+
+        # initial scale 1 . ie. original detector size is used
+        scale = 1.0
+
+        # upscale the detector window and detect objects until window_size becomes more than one
+        # of the image dimension
+        while(cur_win_width < img_width and cur_win_height < img_height):
+            # max possible window top left corner positions.
+            x_max = img_width - cur_win_width + 1
+            y_max = img_height - cur_win_height + 1
+            print ('current scale = {:f}'.format(scale))
+            print('Detector height = {:d}, Detector width = {:d}'.format(cur_win_height, cur_win_width))
+            for row in range(0, y_max, v_stride):
+                for col in range(0, x_max, h_stride):
+                    #print row, col
+                    # detect if the current window contains any objects
+                    win_pass = self._evaluate_window_scaled(col, row, scale, ii_img)
+                    # record the window if it passes
+                    if(win_pass):
+                        objs.append(tuple([int(col),
+                                     int(row),
+                                     int(cur_win_width),
+                                     int(cur_win_height)]))
+ 
+            # upscale the detector window
+            scale *= scale_factor
+            cur_win_width = int(self.win_width*scale)
+            cur_win_height = int(self.win_height*scale)
+            # perform new detections on the rescaled image.
+
+        # perform NMS 
+        print len(objs)
+        return objs
+
+
     def block_integral_object_detector(self, in_img, scale_factor=1.1, blk_height=60, blk_width=80, min_neighbors=3, min_size=(30,30)):
         """This uses block integral image instead of full integral image. 
         """
@@ -352,11 +443,12 @@ if __name__=='__main__':
     #objs = det.detect_objects(in_img=clr_img,
     #    scale_factor=2.0)
 
-    objs = det.block_integral_object_detector(in_img=clr_img,
-        scale_factor=2.0,
-        blk_height=120,
-        blk_width=160)
-
+    #objs = det.block_integral_object_detector(in_img=clr_img,
+    #    scale_factor=2.0,
+    #    blk_height=120,
+    #    blk_width=160)
+    objs = det.scaled_window_object_detector(in_img=clr_img,
+        scale_factor=2.5)
     for (x, y, w, h) in objs:
         cv2.rectangle(clr_img, (x, y), (x+w, y+h), (255, 0, 0), 3)
 
