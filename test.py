@@ -1,6 +1,5 @@
 import sys
 sys.path.insert(0, './lib')
-import dataset
 from dataset import CaltechFace
 from obj_evaluator import ObjectEvaluator
 

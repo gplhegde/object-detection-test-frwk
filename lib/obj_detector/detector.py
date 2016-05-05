@@ -14,6 +14,7 @@ import os,sys
 import xml.dom.minidom as minidom
 import cv2
 import numpy as np
+from utils import box_nms
 
 class ObjectDetector(object):
     def __init__(self, model_file, model_type='float_pt'):
@@ -292,7 +293,9 @@ class ObjectDetector(object):
             cur_win_height = int(self.win_height*scale)
             # perform new detections on the rescaled image.
 
+        print len(objs)
         # perform NMS 
+        objs = box_nms(objs, 0.2)
         print len(objs)
         return objs
 
@@ -448,7 +451,7 @@ if __name__=='__main__':
     #    blk_height=120,
     #    blk_width=160)
     objs = det.scaled_window_object_detector(in_img=clr_img,
-        scale_factor=2.5)
+        scale_factor=1.5)
     for (x, y, w, h) in objs:
         cv2.rectangle(clr_img, (x, y), (x+w, y+h), (255, 0, 0), 3)
 
