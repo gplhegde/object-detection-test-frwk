@@ -15,6 +15,7 @@ import xml.dom.minidom as minidom
 import cv2
 import numpy as np
 from utils import box_nms
+from lbp_feat import lbp_feat
 
 class ObjectDetector(object):
     def __init__(self, model_file, model_type='float_pt'):
@@ -229,7 +230,8 @@ class ObjectDetector(object):
                 stump_luts = self.luts[stage][s]
                 stump_wts = self.weights[stage][s]
                 # compute LBP feature 
-                lbp_code = self._compute_lbp_feature(ii_img, scaled_feat_params, win_x, win_y)
+                #lbp_code = self._compute_lbp_feature(ii_img, scaled_feat_params, win_x, win_y)
+                lbp_code = lbp_feat(ii_img, scaled_feat_params, win_x, win_y)
                 # decide whether to add left or right leaf value
                 flag = stump_luts[lbp_code >> 5] & (1 << (lbp_code & 31))
                 if ( flag > 0):
@@ -423,6 +425,7 @@ class ObjectDetector(object):
         return objs
 
 if __name__=='__main__':
+    import time
     this_dir = os.path.dirname(__file__)
     model_file = os.path.join(this_dir, '../../models/lbp_fp_face_model.xml')
 
@@ -450,8 +453,11 @@ if __name__=='__main__':
     #    scale_factor=2.0,
     #    blk_height=120,
     #    blk_width=160)
+    start_time = time.clock()
     objs = det.scaled_window_object_detector(in_img=clr_img,
         scale_factor=1.5)
+    end_time = time.clock()
+    print('Runtime = {:.2f} sec'.format(end_time-start_time))
     for (x, y, w, h) in objs:
         cv2.rectangle(clr_img, (x, y), (x+w, y+h), (255, 0, 0), 3)
 
