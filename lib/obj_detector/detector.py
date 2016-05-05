@@ -231,7 +231,7 @@ class ObjectDetector(object):
                 stump_wts = self.weights[stage][s]
                 # compute LBP feature 
                 #lbp_code = self._compute_lbp_feature(ii_img, scaled_feat_params, win_x, win_y)
-                lbp_code = lbp_feat(ii_img, scaled_feat_params, win_x, win_y)
+                lbp_code = lbp_feat(ii_img, scaled_feat_params[0], scaled_feat_params[1],scaled_feat_params[2],scaled_feat_params[3], win_x, win_y)
                 # decide whether to add left or right leaf value
                 flag = stump_luts[lbp_code >> 5] & (1 << (lbp_code & 31))
                 if ( flag > 0):
@@ -265,7 +265,7 @@ class ObjectDetector(object):
 
         # compute integral image. just one time process
         ii_img = cv2.integral(gray_img)
-
+        print ii_img.dtype
         # initial scale 1 . ie. original detector size is used
         scale = 1.0
 
@@ -446,14 +446,14 @@ if __name__=='__main__':
     print(det._feat_params(3))
     print('Looking for objects....')
     clr_img = cv2.imread(sys.argv[1])
+    start_time = time.clock()
     #objs = det.detect_objects(in_img=clr_img,
-    #    scale_factor=2.0)
+    #    scale_factor=1.5)
 
     #objs = det.block_integral_object_detector(in_img=clr_img,
     #    scale_factor=2.0,
     #    blk_height=120,
     #    blk_width=160)
-    start_time = time.clock()
     objs = det.scaled_window_object_detector(in_img=clr_img,
         scale_factor=1.5)
     end_time = time.clock()
