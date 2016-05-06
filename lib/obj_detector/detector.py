@@ -18,6 +18,9 @@ from utils import box_nms
 from lbp_feat import lbp_feat
 
 class ObjectDetector(object):
+    """This class contains some custom implementation of LBP face/object detector. All implementations are
+    cascade classifier based and use LBP features.
+    """
     def __init__(self, model_file, model_type='float_pt'):
         # only xml files are accepted by this detector
         assert(model_file.split('.')[-1] == 'xml'), 'Model file mush be in the xml format.'
@@ -295,10 +298,10 @@ class ObjectDetector(object):
             cur_win_height = int(self.win_height*scale)
             # perform new detections on the rescaled image.
 
-        print len(objs)
+        print('No of boxes before NMS = {:d}'.format(len(objs)))
         # perform NMS 
         objs = box_nms(objs, 0.2)
-        print len(objs)
+        print('No of boxes after NMS = {:d}'.format(len(objs)))
         return objs
 
 
@@ -367,8 +370,10 @@ class ObjectDetector(object):
             gray_img = cv2.resize(gray_img, dsize=(cur_width, cur_height), interpolation=cv2.INTER_LINEAR)
             # perform new detections on the rescaled image.
 
+        print('No of boxes before NMS = {:d}'.format(len(objs)))
         # perform NMS 
-        print len(objs)
+        objs = box_nms(objs, 0.2)
+        print('No of boxes after NMS = {:d}'.format(len(objs)))
         return objs
 
     def detect_objects(self, in_img, scale_factor=1.1, min_neighbors=3, min_size=(30,30), max_size=()):
@@ -420,8 +425,10 @@ class ObjectDetector(object):
             gray_img = cv2.resize(gray_img, dsize=(cur_width, cur_height), interpolation=cv2.INTER_LINEAR)
             # perform new detections on the rescaled image.
 
+        print('No of boxes before NMS = {:d}'.format(len(objs)))
         # perform NMS 
-        print len(objs)
+        objs = box_nms(objs, 0.2)
+        print('No of boxes after NMS = {:d}'.format(len(objs)))
         return objs
 
 if __name__=='__main__':

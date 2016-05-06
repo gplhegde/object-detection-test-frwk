@@ -2,6 +2,8 @@ import numpy as np
 cimport numpy as np
 
 cdef inline np.int32_t _get_cell_sum(np.ndarray[np.int32_t, ndim=2] ii_img, int x,int y, int w, int h):
+    """This computes the sum of pixels in the given cell using 4 points from the integral image
+    """
     cdef int left_pt, top_pt
     left_pt = x-1
     top_pt = y-1
@@ -37,9 +39,9 @@ def lbp_feat(np.ndarray[np.int32_t, ndim=2] ii_img, int ft_x, int ft_y, int ft_w
     feat_y = win_pos_y + ft_y
     cell_width = ft_w
     cell_height = ft_h
-    # cell positions in terms of multiple of cell height and width in the LBP order. (x, y) format
-    #cell_pos = ((0, 0), (1, 0), (2, 0), (2, 1), (2, 2), (1, 2), (0, 2), (0, 1))
     cdef int cell_pos_x[8], cell_pos_y[8]
+
+    # cell positions in terms of multiple of cell height and width in the LBP order. (x, y) format
     cell_pos_x[:] = [0, 1, 2, 2, 2, 1, 0, 0]
     cell_pos_y[:] = [0, 0, 0, 1, 2, 2, 2, 1]
     # sum of center cell
@@ -53,6 +55,7 @@ def lbp_feat(np.ndarray[np.int32_t, ndim=2] ii_img, int ft_x, int ft_y, int ft_w
         cell_y = feat_y + cell_pos_y[n] * cell_height
         cell_sum = _get_cell_sum(ii_img, cell_x, cell_y, cell_width, cell_height)
         if(cell_sum > cent_sum):
+            # set the bit if the sum > sum of the center cell
             lbp_code += (2**(7-n))
 
     return lbp_code

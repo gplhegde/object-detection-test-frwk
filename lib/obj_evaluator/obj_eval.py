@@ -35,6 +35,20 @@ class ObjectEvaluator(object):
             self.detector = cv2.CascadeClassifier(self.model_path)
         else:
             raise ValueError('Unsupported detector type')
+        # set the detector handler based on implementation method
+        if(eval_cfg.DETECTOR_METHOD == 'opencv'):
+            self.detect_objects = self._detect_objects
+        elif(eval_cfg.DETECTOR_METHOD == 'custom-opencv'):
+            # similar to detect multiscale, but pure python implementation
+            self.detect_objects = None
+        elif(eval_cfg.DETECTOR_METHOD == 'blk-integral'):
+            # block integral image based implementation
+            self.detect_objects = None
+        elif(eval_cfg.DETECTOR_METHOD == 'pyramid-detector'):
+            #  pyramid detector( instead of image scaling scale the detector) implementation
+            self.detect_objects = None
+        else:
+            raise ValueError('Invalid detector method')
 
         self.cache_dir = './cache'
         self.detections_file = 'caltech_face_detections.pkl'
@@ -69,7 +83,7 @@ class ObjectEvaluator(object):
         """
         for im in img_paths:
             img = cv2.imread(im)
-            objs = self.__detect_objects(img)
+            objs = self.detect_objects(img)
             for (x, y, w, h) in objs:
                 cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 3)
 
@@ -154,7 +168,7 @@ class ObjectEvaluator(object):
             print('Processing {:s} for objects'.format(im.split('/')[-1]))
             img = cv2.imread(im)
             # find objects in the image
-            objs = self.__detect_objects(img)
+            objs = self.detect_objects(img)
             # convert (xmin, ymin, w, h) format to (xmin, ymin, xmax, ymax) format
             objs = [(obj[0], obj[1], obj[0]+obj[2], obj[1]+obj[3]) for obj in objs]
             
@@ -204,7 +218,7 @@ class ObjectEvaluator(object):
 if __name__=='__main__':
     #img_file = sys.argv[1]
     det = ObjectEvaluator('lbp_face', 'cascade')
-    #objs = det.__detect_objects(cv2.imread(img_file))
+    #objs = det.detect_objects(cv2.imread(img_file))
     #print objs
     paths = ['/opt/obj-detection/face-datasets/caltech-face-1999/images/image_0001.jpg',
              '/opt/obj-detection/face-datasets/caltech-face-1999/images/image_0002.jpg']
