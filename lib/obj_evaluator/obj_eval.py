@@ -112,11 +112,11 @@ class ObjectEvaluator(object):
              det_boxes = detections[i]
 
              det_idx = range(len(detections[i]))
-
+             matched_det_idx = []
              for gt_box in ann['rects']:
                  # get list of IoU for the current ground truth box wrt all detections
                  iou = get_iou_list(gt_box, det_boxes)
-                 matched_det_idx = []
+                 
                  # all detections with IoU > threshold are detection matches for the current gt box
                  match = []
                  for e in det_idx:
